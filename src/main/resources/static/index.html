@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spin Together</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --ink: #f8fafc;
+      --button: #e2e8f0;
+      --button-hover: #cbd5e1;
+      --button-ink: #1e293b;
+      --spin: #0f766e;
+      --spin-hover: #115e59;
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 1200px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px;
+      background: radial-gradient(circle at 12% 4%, #1e3a8a 0, transparent 26rem), radial-gradient(circle at 92% 90%, #134e4a 0, transparent 29rem), var(--bg);
+      color: var(--ink);
+      font: 16px system-ui;
+    }
+    button, input { padding: 10px 14px; border-radius: 9px; font: inherit; }
+    button {
+      border: 1px solid #cbd5e1;
+      background: var(--button);
+      color: var(--button-ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button:hover { background: var(--button-hover); }
+    .file-button {
+      display: inline-block;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: var(--button);
+      color: var(--button-ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .file-button:hover { background: var(--button-hover); }
+    .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    #selectedFile { display: inline-block; min-width: 130px; color: #cbd5e1; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    button.spin {
+      border-color: var(--spin);
+      background: var(--spin);
+      color: #fff;
+    }
+    button.spin:hover { border-color: var(--spin-hover); background: var(--spin-hover); }
+    input { margin: 4px; border: 0; background: #fff; color: #111827; }
+    .brand { display: flex; align-items: center; gap: 12px; margin: 6px 0 28px; }
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .38);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fbbf24, #f97316);
+      color: #431407;
+      font-size: 24px;
+      box-shadow: 0 9px 24px rgba(249, 115, 22, .28);
+    }
+    .brand h1 { margin: 0; font-size: clamp(23px, 4vw, 31px); letter-spacing: -.04em; }
+    .home-shell { max-width: 1040px; margin: 0 auto; }
+    .home-hero { max-width: 680px; margin: 0 auto 28px; text-align: center; }
+    .home-hero h2 { margin: 0 0 11px; font-size: clamp(36px, 7vw, 66px); line-height: .98; letter-spacing: -.065em; }
+    .home-hero p { max-width: 590px; margin: 0 auto; color: #cbd5e1; font-size: 18px; line-height: 1.55; }
+    .home-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .home-card {
+      display: flex;
+      min-height: 300px;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .96);
+      color: #172554;
+      box-shadow: 0 18px 38px rgba(2, 6, 23, .22);
+    }
+    .home-card.featured { border-color: #99f6e4; background: linear-gradient(150deg, #f0fdfa, #fff 67%); }
+    .home-step { color: #0f766e; font-size: 12px; font-weight: 900; letter-spacing: .13em; }
+    .home-card h3 { margin: 12px 0 8px; font-size: 24px; letter-spacing: -.035em; }
+    .home-card p { min-height: 52px; margin: 0 0 18px; color: #475569; line-height: 1.45; }
+    .home-card label { margin-bottom: 7px; color: #334155; font-size: 13px; font-weight: 750; }
+    .home-card input:not(.file-input):not([type="checkbox"]) { width: 100%; margin: 0 0 10px; border: 1px solid #cbd5e1; }
+    .anonymous-choice { display: flex !important; align-items: center; gap: 7px; margin: 2px 0 10px !important; color: #475569 !important; font-weight: 650 !important; }
+    .anonymous-choice input { width: 16px; height: 16px; margin: 0; accent-color: var(--spin); }
+    .home-card button, .home-card .file-button { width: 100%; margin-top: auto; text-align: center; }
+    .home-card .file-button { margin-bottom: 9px; }
+    .home-card #selectedFile { min-width: 0; margin-bottom: 10px; overflow: hidden; color: #64748b; font-size: 13px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+    .home-card .home-primary { border-color: var(--spin); background: var(--spin); color: white; }
+    .home-card .home-primary:hover { border-color: var(--spin-hover); background: var(--spin-hover); }
+    .home-note { margin: 20px 0 0; color: #cbd5e1; text-align: center; }
+    .home-note strong { color: white; }
+    #status { min-height: 24px; margin: 16px 0 0; color: #fef3c7; text-align: center; }
+    .owner, #app { display: none; }
+    #app { max-width: 1180px; margin: 0 auto; }
+    .room-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 4px 0 22px;
+      padding: 26px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 24px;
+      background: linear-gradient(115deg, rgba(30, 41, 59, .97), rgba(15, 118, 110, .48));
+      box-shadow: 0 18px 42px rgba(2, 6, 23, .25);
+    }
+    .room-eyebrow { color: #99f6e4; font-size: 12px; font-weight: 850; letter-spacing: .14em; }
+    .room-header h2 { margin: 7px 0 4px; font-size: clamp(30px, 5vw, 46px); letter-spacing: -.05em; }
+    #roomRole { margin: 0; color: #cbd5e1; }
+    .room-presence { display: inline-flex; align-items: center; gap: 7px; margin: 13px 0 0; color: #d1fae5; font-size: 14px; }
+    .room-presence::before { width: 8px; height: 8px; border-radius: 50%; background: #5eead4; box-shadow: 0 0 0 4px rgba(94, 234, 212, .14); content: ''; }
+    .participant-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 24px;
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 17px;
+      background: rgba(30, 41, 59, .78);
+    }
+    .participant-panel h3 { margin: 0; font-size: 14px; }
+    .participant-list { display: flex; flex: 1; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .participant {
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .55);
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    .participant.host { border-color: rgba(94, 234, 212, .45); color: #ccfbf1; }
+    .participant small { margin-right: 4px; color: #94a3b8; }
+    .room-code {
+      flex: 0 0 auto;
+      padding: 12px 15px;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, .38);
+      color: #cbd5e1;
+      text-align: right;
+    }
+    .room-code strong { display: block; margin-top: 3px; color: white; font-size: 21px; letter-spacing: .13em; }
+    .room-controls {
+      grid-template-columns: minmax(220px, .9fr) minmax(300px, 1.5fr) minmax(190px, .75fr);
+      gap: 14px;
+      margin: 0 0 24px;
+    }
+    .control-group {
+      display: flex;
+      min-height: 176px;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 18px;
+      background: rgba(30, 41, 59, .94);
+    }
+    .control-group h3 { margin: 0 0 4px; font-size: 17px; }
+    .control-group > p { margin: 0 0 14px; color: #94a3b8; font-size: 13px; line-height: 1.4; }
+    .control-group label:not(.celebration-toggle) { display: block; margin: 8px 0 5px; color: #cbd5e1; font-size: 12px; font-weight: 750; }
+    .control-group input:not([type="checkbox"]) { width: 100%; margin: 0; border: 1px solid #cbd5e1; }
+    .control-group button { margin-top: 10px; }
+    .control-group .spin { margin-top: auto; }
+    .control-group .celebration-toggle { margin: 14px 0 0; color: #e2e8f0; }
+    .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .card { padding: 16px; border-radius: 16px; background: var(--panel); text-align: center; }
+    .wheel-zone { position: relative; width: 260px; margin: 12px auto; }
+    .wheel {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      border: 8px solid white;
+      border-radius: 50%;
+      transition: transform 4s cubic-bezier(.1, .75, .15, 1);
+    }
+    .pointer {
+      position: absolute;
+      z-index: 3;
+      top: -15px;
+      left: 50%;
+      margin-left: -15px;
+      border-right: 15px solid transparent;
+      border-top: 28px solid white;
+      border-left: 15px solid transparent;
+      filter: drop-shadow(0 2px 2px #000);
+    }
+    .slice-label {
+      position: absolute;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 400;
+      text-shadow: 0 1px 2px #000;
+      line-height: 1.08;
+      overflow-wrap: anywhere;
+    }
+    .wheel-actions { display: flex; justify-content: center; gap: 8px; }
+    .wheel-actions.owner { display: none; }
+    .danger { border-color: #cbd5e1; background: var(--button); color: var(--button-ink); }
+    .history { margin-top: 26px; padding: 18px; border-radius: 16px; background: var(--panel); }
+    .history li { margin: 9px 0; color: #cbd5e1; }
+    .result { height: 24px; color: #fde047; font-weight: bold; }
+    .celebration-toggle { display: inline-flex; align-items: center; gap: 7px; margin: 4px 10px 4px 4px; }
+    .celebration-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--spin); }
+    #celebration {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, .72);
+      text-align: center;
+    }
+    #celebration.show { display: grid; animation: celebration-backdrop .25s ease-out; }
+    .celebration-card {
+      max-width: min(90vw, 900px);
+      padding: clamp(24px, 5vw, 56px);
+      border: 3px solid #fbbf24;
+      border-radius: 28px;
+      background: #fff;
+      color: #172554;
+      box-shadow: 0 22px 80px rgba(0, 0, 0, .5);
+      animation: celebration-pop .45s cubic-bezier(.2, 1.4, .35, 1);
+    }
+    .celebration-card p { margin: 0 0 10px; color: #b45309; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    #celebration-results { font-size: clamp(30px, 6vw, 74px); font-weight: 800; line-height: 1.06; }
+    #effects { position: fixed; z-index: 21; inset: 0; pointer-events: none; overflow: hidden; }
+    .confetti {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      width: 10px;
+      height: 16px;
+      border-radius: 2px;
+      background: var(--colour);
+      animation: confetti-burst 2.6s cubic-bezier(.14, .68, .2, 1) forwards;
+    }
+    .firework {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--colour);
+      box-shadow: 0 -42px var(--colour), 30px -30px var(--colour), 42px 0 var(--colour), 30px 30px var(--colour), 0 42px var(--colour), -30px 30px var(--colour), -42px 0 var(--colour), -30px -30px var(--colour);
+      animation: firework-burst 1.4s ease-out forwards;
+    }
+    @keyframes celebration-backdrop { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes celebration-pop { from { transform: scale(.55); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes confetti-burst {
+      to { transform: translate(var(--x), var(--y)) rotate(var(--rotation)); opacity: 0; }
+    }
+    @keyframes firework-burst {
+      0% { transform: scale(.1); opacity: 1; }
+      70% { opacity: 1; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      .brand { margin-bottom: 20px; }
+      .home-grid { grid-template-columns: 1fr; }
+      .home-card { min-height: auto; }
+      .room-header { align-items: start; flex-direction: column; padding: 21px; }
+      .room-code { width: 100%; text-align: left; }
+      .room-controls { grid-template-columns: 1fr; }
+      .participant-panel { align-items: start; flex-direction: column; }
+      .participant-list { justify-content: flex-start; }
+      .wheel-zone, .wheel { width: 230px; height: 230px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="brand-mark">✦</div>
+    <h1>Spin Together</h1>
+  </header>
+  <section id="home" class="home-shell">
+    <div class="home-hero">
+      <h2>Make every choice feel like an event.</h2>
+      <p>Create a live wheel room, share its link, and let everyone watch the result together.</p>
+    </div>
+    <div class="home-grid">
+      <article class="home-card featured">
+        <span class="home-step">01 — NEW ROOM</span>
+        <h3>Start spinning</h3>
+        <p>Make a fresh room, add your wheels, and invite your group.</p>
+        <label for="initialRoomName">Room name <small>(optional)</small></label>
+        <input id="initialRoomName" placeholder="Friday night picks">
+        <button id="create" class="home-primary">Create live room</button>
+      </article>
+      <article class="home-card">
+        <span class="home-step">02 — IMPORT</span>
+        <h3>Bring a room back</h3>
+        <p>Restore your saved wheels and history from an exported JSON file.</p>
+        <input id="file" class="file-input" type="file" accept="application/json,.json">
+        <label id="chooseFile" class="file-button" for="file">Choose JSON file</label>
+        <span id="selectedFile">No file selected</span>
+        <button id="import" disabled>Import room</button>
+      </article>
+      <article class="home-card">
+        <span class="home-step">03 — JOIN</span>
+        <h3>Enter a room</h3>
+        <p>Got a code? Join the live room to follow each spin as it happens.</p>
+        <label for="spectatorName">Your name <small>(optional)</small></label>
+        <input id="spectatorName" placeholder="Alex">
+        <label class="anonymous-choice"><input id="anonymousSpectator" type="checkbox">Join anonymously</label>
+        <label for="code">Room code</label>
+        <input id="code" placeholder="ABC123" autocomplete="off">
+        <button id="join">Join room</button>
+      </article>
+    </div>
+    <p class="home-note"><strong>Shareable by design.</strong> The room link appears automatically when you create or join.</p>
+    <p id="status"></p>
+  </section>
+
+  <section id="app">
+    <header class="room-header">
+      <div>
+        <span class="room-eyebrow">LIVE ROOM</span>
+        <h2 id="roomNameDisplay">Room</h2>
+        <p id="roomRole">Watching live</p>
+        <p class="room-presence" id="spectatorCount">0 spectators watching</p>
+      </div>
+      <div class="room-code">SHARE CODE<strong id="room"></strong></div>
+    </header>
+    <section class="participant-panel">
+      <h3>In this room</h3>
+      <div class="participant-list" id="participantList"></div>
+    </section>
+    <div class="room-controls owner" data-display="grid">
+      <section class="control-group">
+        <h3>Room settings</h3>
+        <p>Give your room a name and choose whether completed spins celebrate.</p>
+        <label for="roomNameEdit">Room name</label>
+        <input id="roomNameEdit" placeholder="Room name">
+        <label for="hostNameEdit">Your display name <small>(optional)</small></label>
+        <input id="hostNameEdit" placeholder="Host name">
+        <button id="saveRoomName">Save room details</button>
+        <label class="celebration-toggle"><input id="celebrationToggle" type="checkbox">Celebrate spins</label>
+      </section>
+      <section class="control-group">
+        <h3>Add a wheel</h3>
+        <p>Enter a category and the values that should appear on its wheel.</p>
+        <label for="name">Wheel name</label>
+        <input id="name" placeholder="e.g. Dinner">
+        <label for="values">Values, comma-separated</label>
+        <input id="values" placeholder="Pizza, Pasta, Salad">
+        <button id="add">Add wheel</button>
+      </section>
+      <section class="control-group">
+        <h3>Live actions</h3>
+        <p>Spin every wheel together or save a copy of this room.</p>
+        <button id="spinAll" class="spin">Spin all wheels</button>
+        <button id="export">Export JSON</button>
+      </section>
+    </div>
+    <div id="board" class="board"></div>
+    <section class="history">
+      <h2>Spin history</h2>
+      <ul id="history"></ul>
+    </section>
+  </section>
+
+  <section id="celebration" aria-live="assertive">
+    <div class="celebration-card">
+      <p>Spin result</p>
+      <div id="celebration-results"></div>
+    </div>
+  </section>
+  <div id="effects"></div>
+
+  <script>
+    const $ = selector => document.querySelector(selector);
+    let owner = false;
+    let state = { version: 1, code: '', categories: [], history: [] };
+    let seenCelebrationId = '';
+    let celebrationTimeout;
+    let spectatorCount = 0;
+    let spectatorName = new URLSearchParams(location.search).get('name')?.trim() || '';
+    let spectators = [];
+    const activeSpinIds = new Set();
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+
+    const send = message => ws.readyState === 1
+      ? ws.send(JSON.stringify(message))
+      : $('#status').textContent = 'Connecting…';
+    const code = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+    const esc = value => value.replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character]);
+    const europeanDate = () => new Intl.DateTimeFormat('en-GB', { dateStyle: 'short' }).format(new Date());
+    const displayDate = date => String(date).replace(/,\s*\d{1,2}:\d{2}(?::\d{2})?\s*$/, '');
+    const sliceColour = (index, total) => 'hsl(' + Math.round((index * 360 / total + 8) % 360) + ' 63% 54%)';
+    const celebrationColours = ['#f43f5e', '#f59e0b', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899'];
+    const homeNotice = sessionStorage.getItem('spinTogetherNotice');
+    if (homeNotice) {
+      $('#status').textContent = homeNotice;
+      sessionStorage.removeItem('spinTogetherNotice');
+    }
+    $('#spectatorName').value = spectatorName;
+
+    function save() {
+      send({ type: 'state', state });
+      render();
+    }
+
+    function showCelebration(results) {
+      $('#celebration-results').textContent = results.map(result => result.wheel + ': ' + result.result).join(' · ');
+      $('#celebration').classList.add('show');
+      $('#effects').replaceChildren();
+      for (let index = 0; index < 90; index++) {
+        const piece = document.createElement('span');
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 140 + Math.random() * Math.max(innerWidth, innerHeight) * .55;
+        piece.className = 'confetti';
+        piece.style.setProperty('--colour', celebrationColours[index % celebrationColours.length]);
+        piece.style.setProperty('--x', Math.cos(angle) * distance + 'px');
+        piece.style.setProperty('--y', Math.sin(angle) * distance + 'px');
+        piece.style.setProperty('--rotation', Math.round(Math.random() * 1080) + 'deg');
+        $('#effects').append(piece);
+      }
+      for (let index = 0; index < 6; index++) {
+        const firework = document.createElement('span');
+        firework.className = 'firework';
+        firework.style.left = (12 + Math.random() * 76) + '%';
+        firework.style.top = (12 + Math.random() * 52) + '%';
+        firework.style.setProperty('--colour', celebrationColours[(index + 2) % celebrationColours.length]);
+        $('#effects').append(firework);
+      }
+      clearTimeout(celebrationTimeout);
+      celebrationTimeout = setTimeout(() => {
+        $('#celebration').classList.remove('show');
+        $('#effects').replaceChildren();
+      }, 3500);
+    }
+
+    function showCelebrationIfNew() {
+      const spin = state.lastSpin;
+      if (state.celebrationEnabled && spin && spin.id !== seenCelebrationId) {
+        seenCelebrationId = spin.id;
+        showCelebration(spin.results);
+      }
+    }
+
+    function renderParticipants() {
+      const hostName = state.hostName?.trim() || 'Host';
+      const people = [{ name: hostName, host: true }, ...spectators.map(spectator => ({ name: spectator.name || 'Anonymous spectator' }))];
+      $('#participantList').innerHTML = people.map(person =>
+        '<span class="participant' + (person.host ? ' host' : '') + '"><small>' + (person.host ? 'Host' : 'Spectator') + '</small>' + esc(person.name) + '</span>'
+      ).join('');
+    }
+
+    function wheel(category, index) {
+      const count = category.values.length;
+      const angle = 360 / count;
+      const gradient = category.values.map((_, valueIndex) =>
+        sliceColour(valueIndex, count) + ' ' + (valueIndex * angle) + 'deg ' + ((valueIndex + 1) * angle) + 'deg'
+      ).join(',');
+      const labelRadius = 4 * Math.sin((angle * Math.PI / 180) / 2) / (3 * (angle * Math.PI / 180));
+      const labels = category.values.map((value, valueIndex) => {
+        const midpoint = (valueIndex + .5) * angle;
+        const radians = midpoint * Math.PI / 180;
+        const left = 50 + Math.sin(radians) * labelRadius * 50;
+        const top = 50 - Math.cos(radians) * labelRadius * 50;
+        const wheelRadius = 122;
+        const radialPosition = labelRadius * wheelRadius;
+        const availableWidth = Math.max(38, 2 * Math.min(radialPosition - 8, wheelRadius - radialPosition - 8));
+        const availableHeight = Math.max(26, 2 * radialPosition * Math.sin((angle * Math.PI / 180) / 2) * .88);
+        return '<span class="slice-label" data-max-height="' + availableHeight + '" style="left:' + left + '%;top:' + top + '%;width:' + availableWidth + 'px;transform:translate(-50%,-50%) rotate(' + (midpoint + 90) + 'deg)">' + esc(value) + '</span>';
+      }).join('');
+      const displayedResult = category.lastResult ? 'Result: ' + esc(category.lastResult) : '';
+
+      return '<article class="card"><h3>' + esc(category.name) + '</h3>' +
+        '<div class="wheel-zone"><div class="pointer"></div><div id="wheel-' + index + '" class="wheel" style="background:conic-gradient(' + gradient + ');transform:rotate(' + (category.rotationDegrees || 0) + 'deg)">' + labels + '</div></div>' +
+        '<div class="wheel-actions owner" data-display="flex"><button class="spin" data-spin="' + index + '">Spin wheel</button><button class="danger" data-remove="' + index + '">Remove wheel</button></div>' +
+        '<p id="result-' + index + '" class="result">' + displayedResult + '</p></article>';
+    }
+
+    function render() {
+      $('#board').innerHTML = state.categories.map(wheel).join('') || '<p>No wheels yet. Add one above.</p>';
+      $('#history').innerHTML = (state.history || []).slice().reverse().map(entry =>
+        '<li><b>' + esc(displayDate(entry.date)) + '</b>: ' + entry.results.map(result =>
+          esc(result.wheel) + ' — ' + esc(result.result)
+        ).join(', ') + '</li>'
+      ).join('') || '<li>No spins yet.</li>';
+      $('#roomNameDisplay').textContent = state.name || 'Room';
+      $('#roomRole').textContent = owner ? 'You control this room' : 'Watching live';
+      $('#spectatorCount').textContent = spectatorCount + (spectatorCount === 1 ? ' spectator watching' : ' spectators watching');
+      if (owner) $('#roomNameEdit').value = state.name || '';
+      if (owner) $('#hostNameEdit').value = state.hostName || '';
+      $('#celebrationToggle').checked = !!state.celebrationEnabled;
+      renderParticipants();
+      document.querySelectorAll('.slice-label').forEach(label => {
+        const maximumHeight = +label.dataset.maxHeight;
+        let fontSize = 16;
+        label.style.fontSize = fontSize + 'px';
+        while (label.scrollHeight > maximumHeight && fontSize > 8) {
+          fontSize -= .5;
+          label.style.fontSize = fontSize + 'px';
+        }
+      });
+
+      document.querySelectorAll('[data-remove]').forEach(button => button.onclick = () => {
+        state.categories.splice(+button.dataset.remove, 1);
+        save();
+      });
+      document.querySelectorAll('[data-spin]').forEach(button => button.onclick = () => spin([+button.dataset.spin]));
+      document.querySelectorAll('.owner').forEach(element => element.style.display = owner ? (element.dataset.display || 'block') : 'none');
+    }
+
+    function playSpin(spinEvent, shouldSave) {
+      if (!spinEvent || activeSpinIds.has(spinEvent.id)) return;
+      activeSpinIds.add(spinEvent.id);
+      spinEvent.wheels.forEach(wheelSpin => {
+        const category = state.categories[wheelSpin.index];
+        if (!category) return;
+        category.rotationDegrees = wheelSpin.rotation;
+        const wheelElement = document.getElementById('wheel-' + wheelSpin.index);
+        const resultElement = document.getElementById('result-' + wheelSpin.index);
+        if (wheelElement) wheelElement.style.transform = 'rotate(' + wheelSpin.rotation + 'deg)';
+        if (resultElement) resultElement.textContent = 'Spinning…';
+        setTimeout(() => {
+          category.lastResult = wheelSpin.result;
+          if (resultElement) resultElement.textContent = 'Result: ' + wheelSpin.result;
+        }, 4000);
+      });
+      setTimeout(() => {
+        activeSpinIds.delete(spinEvent.id);
+        if (shouldSave) {
+          state.lastSpin = { id: spinEvent.id, results: spinEvent.results };
+          showCelebrationIfNew();
+        }
+      }, 4000);
+      if (shouldSave) {
+        setTimeout(() => {
+          state.history.push({ date: europeanDate(), results: spinEvent.results });
+          save();
+        }, 4100);
+      }
+    }
+
+    function spin(indices) {
+      if (!indices.length) return;
+      const spinEvent = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+        results: [],
+        wheels: []
+      };
+      indices.forEach(index => {
+        const category = state.categories[index];
+        const winner = Math.floor(Math.random() * category.values.length);
+        const result = category.values[winner];
+        const count = category.values.length;
+        const currentRotation = category.rotationDegrees || 0;
+        const currentAngle = ((currentRotation % 360) + 360) % 360;
+        const resultAngle = 360 - winner * 360 / count - 180 / count;
+        const rotation = currentRotation + 2160 + ((resultAngle - currentAngle + 360) % 360);
+        spinEvent.results.push({ wheel: category.name, result });
+        spinEvent.wheels.push({ index, result, rotation });
+      });
+      playSpin(spinEvent, true);
+      send({ type: 'spin', spin: spinEvent });
+    }
+
+    $('#create').onclick = () => {
+      state = { version: 1, code: code(), name: $('#initialRoomName').value.trim(), categories: [], history: [] };
+      send({ type: 'import', code: state.code, state });
+    };
+    $('#join').onclick = () => {
+      spectatorName = $('#anonymousSpectator').checked ? '' : $('#spectatorName').value.trim();
+      send({ type: 'join', code: $('#code').value.toUpperCase(), name: spectatorName });
+    };
+    $('#anonymousSpectator').onchange = () => $('#spectatorName').disabled = $('#anonymousSpectator').checked;
+    $('#file').onchange = () => {
+      const selected = $('#file').files[0];
+      $('#selectedFile').textContent = selected ? selected.name : 'No file selected';
+      $('#import').disabled = !selected;
+      $('#status').textContent = '';
+    };
+    $('#import').onclick = () => {
+      const selected = $('#file').files[0];
+      if (!selected) {
+        $('#status').textContent = 'Choose a JSON file first.';
+        return;
+      }
+      selected.text().then(text => {
+        state = JSON.parse(text);
+        state.code ||= code();
+        state.history ??= [];
+        send({ type: 'import', code: state.code, state });
+      }).catch(() => $('#status').textContent = 'That file is not a valid room JSON file.');
+    };
+    $('#add').onclick = () => {
+      const name = $('#name').value.trim();
+      const values = $('#values').value.split(',').map(value => value.trim()).filter(Boolean);
+      if (name && values.length > 1) {
+        state.categories.push({ name, values });
+        $('#name').value = $('#values').value = '';
+        save();
+      }
+    };
+    $('#saveRoomName').onclick = () => {
+      state.name = $('#roomNameEdit').value.trim();
+      state.hostName = $('#hostNameEdit').value.trim();
+      save();
+    };
+    $('#celebrationToggle').onchange = () => {
+      state.celebrationEnabled = $('#celebrationToggle').checked;
+      save();
+    };
+    $('#spinAll').onclick = () => spin(state.categories.map((_, index) => index));
+    $('#export').onclick = () => {
+      const download = document.createElement('a');
+      download.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+      download.download = 'spin-room-' + state.code + '.json';
+      download.click();
+    };
+    ws.onopen = () => {
+      const sharedRoom = location.pathname.match(/^\/room\/([A-Z0-9]+)$/i);
+      if (sharedRoom) send({ type: 'join', code: sharedRoom[1].toUpperCase(), name: spectatorName });
+    };
+    ws.onmessage = event => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'error') {
+        if (/^\/room\//.test(location.pathname)) {
+          sessionStorage.setItem('spinTogetherNotice', message.message + ' Start a new room or join another one.');
+          location.replace('/' + (spectatorName ? '?name=' + encodeURIComponent(spectatorName) : ''));
+          return;
+        }
+        $('#status').textContent = message.message;
+      }
+      if (message.type === 'joined') {
+        owner = message.owner;
+        state = JSON.parse(message.state);
+        state.code = message.code;
+        state.history ??= [];
+        seenCelebrationId = state.lastSpin?.id || '';
+        $('#home').style.display = 'none';
+        $('#app').style.display = 'block';
+        $('#room').textContent = message.code;
+        const nameQuery = !owner && spectatorName ? '?name=' + encodeURIComponent(spectatorName) : '';
+        history.replaceState({}, '', '/room/' + message.code + nameQuery);
+        render();
+      }
+      if (message.type === 'state') {
+        state = JSON.parse(message.state);
+        state.history ??= [];
+        render();
+        showCelebrationIfNew();
+      }
+      if (message.type === 'spin') playSpin(message.spin, false);
+      if (message.type === 'presence') {
+        spectators = Array.isArray(message.spectators) ? message.spectators : [];
+        spectatorCount = Number(message.count) || spectators.length;
+        $('#spectatorCount').textContent = spectatorCount + (spectatorCount === 1 ? ' spectator watching' : ' spectators watching');
+        renderParticipants();
+      }
+    };
+  </script>
+</body>
+</html>
