@@ -101,6 +101,20 @@ public class LiveRooms implements WebSocketConfigurer {
             }
 
             Room room = (Room) session.getAttributes().get("room");
+            if (room != null && !room.owner.equals(session.getId()) && "rename".equals(type)) {
+                Object submittedName = input.get("name");
+                String name = submittedName == null ? "" : submittedName.toString().trim();
+                if (name.length() > 60) {
+                    name = name.substring(0, 60);
+                }
+                if (name.isEmpty()) {
+                    session.getAttributes().remove("name");
+                } else {
+                    session.getAttributes().put("name", name);
+                }
+                presence(room);
+                return;
+            }
             if (room != null && room.owner.equals(session.getId()) && "spin".equals(type)) {
                 broadcast(room, Map.of("type", "spin", "spin", input.get("spin")));
                 return;

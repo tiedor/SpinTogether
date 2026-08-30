@@ -69,6 +69,8 @@
       box-shadow: 0 9px 24px rgba(249, 115, 22, .28);
     }
     .brand h1 { margin: 0; font-size: clamp(23px, 4vw, 31px); letter-spacing: -.04em; }
+    .brand-home { color: inherit; text-decoration: none; }
+    .brand-home:hover { color: #99f6e4; }
     .home-shell { max-width: 1040px; margin: 0 auto; }
     .home-hero { max-width: 680px; margin: 0 auto 28px; text-align: center; }
     .home-hero h2 { margin: 0 0 11px; font-size: clamp(36px, 7vw, 66px); line-height: .98; letter-spacing: -.065em; }
@@ -105,6 +107,7 @@
     .owner, #app { display: none; }
     #app { max-width: 1180px; margin: 0 auto; }
     .room-header {
+      position: relative;
       display: flex;
       align-items: end;
       justify-content: space-between;
@@ -154,11 +157,25 @@
       text-align: right;
     }
     .room-code strong { display: block; margin-top: 3px; color: white; font-size: 21px; letter-spacing: .13em; }
-    .room-controls {
-      grid-template-columns: minmax(220px, .9fr) minmax(300px, 1.5fr) minmax(190px, .75fr);
-      gap: 14px;
-      margin: 0 0 24px;
+    .room-header-actions { display: flex; flex-direction: column; align-items: end; gap: 10px; }
+    .open-settings {
+      position: absolute;
+      z-index: 1;
+      top: 18px;
+      right: 18px;
+      display: grid;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      place-items: center;
+      border-color: transparent;
+      border-radius: 50%;
+      background: transparent;
+      color: white;
+      font-size: 21px;
     }
+    .open-settings:hover { border-color: transparent; background: transparent; color: #99f6e4; }
+    .open-settings svg { display: block; width: 22px; height: 22px; fill: currentColor; }
     .control-group {
       display: flex;
       min-height: 176px;
@@ -171,13 +188,86 @@
     }
     .control-group h3 { margin: 0 0 4px; font-size: 17px; }
     .control-group > p { margin: 0 0 14px; color: #94a3b8; font-size: 13px; line-height: 1.4; }
+    .control-heading { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+    .control-heading h3 { margin: 0; }
+    .toggle-settings { flex: 0 0 auto; margin: 0 !important; padding: 6px 9px; font-size: 12px; }
+    .settings-content { display: flex; flex: 1; flex-direction: column; }
+    .spectator-only { display: none; }
+    .room-settings { display: flex; }
+    .room-settings, .wheel-builder {
+      position: fixed;
+      z-index: 25;
+      top: 0;
+      right: 0;
+      width: min(440px, 100vw);
+      height: 100vh;
+      max-height: 100vh;
+      overflow: auto;
+      border-width: 0 0 0 1px;
+      border-radius: 24px 0 0 24px;
+      border-color: rgba(94, 234, 212, .4);
+      box-shadow: 0 26px 80px rgba(2, 6, 23, .6);
+    }
+    .room-settings.is-collapsed, .wheel-builder.is-collapsed { display: none !important; }
+    .settings-backdrop { position: fixed; z-index: 24; inset: 0; display: none; background: rgba(2, 6, 23, .45); }
+    .settings-backdrop.show { display: block; }
+    .floating-add {
+      position: fixed;
+      z-index: 23;
+      right: 32px;
+      bottom: 104px;
+      display: grid;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      place-items: center;
+      border-color: var(--spin);
+      border-radius: 50%;
+      background: var(--spin);
+      color: white;
+      font-size: 30px;
+      font-weight: 400;
+      line-height: 1;
+      box-shadow: 0 10px 24px rgba(15, 118, 110, .38);
+    }
+    .floating-add::before, .floating-add::after {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 19px;
+      height: 3px;
+      border-radius: 4px;
+      background: white;
+      content: '';
+      transform: translate(-50%, -50%);
+    }
+    .floating-add::after { transform: translate(-50%, -50%) rotate(90deg); }
+    .floating-add:hover { border-color: var(--spin-hover); background: var(--spin-hover); transform: translateY(-2px); }
+    .floating-spin {
+      position: fixed;
+      z-index: 23;
+      right: 24px;
+      bottom: 24px;
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      min-width: 0;
+      padding: 0;
+      border-radius: 50%;
+      box-shadow: 0 14px 30px rgba(234, 88, 12, .42);
+    }
+    button.floating-spin.spin { border-color: #ea580c; background: #ea580c; }
+    button.floating-spin.spin:hover { border-color: #c2410c; background: #c2410c; transform: translateY(-2px); }
+    .floating-spin svg { display: block; width: 36px; height: 36px; fill: currentColor; }
     .control-group label:not(.celebration-toggle) { display: block; margin: 8px 0 5px; color: #cbd5e1; font-size: 12px; font-weight: 750; }
     .control-group input:not([type="checkbox"]) { width: 100%; margin: 0; border: 1px solid #cbd5e1; }
     .control-group button { margin-top: 10px; }
     .control-group .spin { margin-top: auto; }
     .control-group .celebration-toggle { margin: 14px 0 0; color: #e2e8f0; }
     .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-    .card { padding: 16px; border-radius: 16px; background: var(--panel); text-align: center; }
+    .card { position: relative; padding: 16px; border-radius: 16px; background: var(--panel); text-align: center; }
+    .wheel-title { width: 260px; margin: 4px auto 22px; line-height: 1.2; text-align: center; }
     .wheel-zone { position: relative; width: 260px; margin: 12px auto; }
     .wheel {
       position: relative;
@@ -209,7 +299,48 @@
     }
     .wheel-actions { display: flex; justify-content: center; gap: 8px; }
     .wheel-actions.owner { display: none; }
-    .danger { border-color: #cbd5e1; background: var(--button); color: var(--button-ink); }
+    .wheel-spin { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+    .wheel-spin svg { width: 17px; height: 17px; fill: currentColor; }
+    button.wheel-spin.spin { border-color: #ea580c; background: #ea580c; }
+    button.wheel-spin.spin:hover { border-color: #c2410c; background: #c2410c; }
+    .wheel-menu {
+      position: absolute;
+      z-index: 4;
+      top: 12px;
+      right: 12px;
+    }
+    .wheel-menu-checkbox { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .wheel-menu-toggle {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid transparent;
+      border-color: transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: #cbd5e1;
+      cursor: pointer;
+      list-style: none;
+    }
+    .wheel-menu-toggle svg { width: 20px; height: 20px; fill: currentColor; }
+    .wheel-menu-toggle:hover, .wheel-menu-checkbox:focus-visible + .wheel-menu-toggle, .wheel-menu-checkbox:checked + .wheel-menu-toggle { border-color: transparent; background: transparent; color: white; }
+    .wheel-menu-popover {
+      position: absolute;
+      top: 44px;
+      right: 0;
+      display: none;
+      min-width: 175px;
+      padding: 8px;
+      border: 1px solid rgba(254, 202, 202, .32);
+      border-radius: 12px;
+      background: #1e293b;
+      box-shadow: 0 16px 32px rgba(2, 6, 23, .38);
+    }
+    .wheel-menu-checkbox:checked ~ .wheel-menu-popover { display: block; }
+    .wheel-menu-delete { width: 100%; padding: 11px 13px; border-color: transparent; background: transparent; color: #fecaca; font-weight: 700; text-align: left; white-space: nowrap; }
+    .wheel-menu-delete:hover { border-color: transparent; background: rgba(185, 28, 28, .55); color: white; }
     .history { margin-top: 26px; padding: 18px; border-radius: 16px; background: var(--panel); }
     .history li { margin: 9px 0; color: #cbd5e1; }
     .result { height: 24px; color: #fde047; font-weight: bold; }
@@ -274,18 +405,19 @@
       .home-grid { grid-template-columns: 1fr; }
       .home-card { min-height: auto; }
       .room-header { align-items: start; flex-direction: column; padding: 21px; }
-      .room-code { width: 100%; text-align: left; }
-      .room-controls { grid-template-columns: 1fr; }
+      .room-header-actions { width: 100%; align-items: end; }
+      .room-code { width: 100%; text-align: right; }
       .participant-panel { align-items: start; flex-direction: column; }
       .participant-list { justify-content: flex-start; }
-      .wheel-zone, .wheel { width: 230px; height: 230px; }
+      .wheel-title, .wheel-zone, .wheel { width: 230px; }
+      .wheel-zone, .wheel { height: 230px; }
     }
   </style>
 </head>
 <body>
   <header class="brand">
     <div class="brand-mark">✦</div>
-    <h1>Spin Together</h1>
+    <h1><a class="brand-home" href="/">Spin Together</a></h1>
   </header>
   <section id="home" class="home-shell">
     <div class="home-hero">
@@ -334,39 +466,54 @@
         <p id="roomRole">Watching live</p>
         <p class="room-presence" id="spectatorCount">0 spectators watching</p>
       </div>
-      <div class="room-code">SHARE CODE<strong id="room"></strong></div>
+      <div class="room-header-actions">
+        <button id="openSettings" class="open-settings" aria-label="Settings" title="Settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98L14.5 2.42C14.47 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.5.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.48 0-.6.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.1-1.65zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg></button>
+        <div class="room-code">SHARE CODE<strong id="room"></strong></div>
+      </div>
     </header>
     <section class="participant-panel">
       <h3>In this room</h3>
       <div class="participant-list" id="participantList"></div>
     </section>
-    <div class="room-controls owner" data-display="grid">
-      <section class="control-group">
-        <h3>Room settings</h3>
-        <p>Give your room a name and choose whether completed spins celebrate.</p>
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <section class="control-group room-settings is-collapsed" id="roomSettingsCard">
+      <div class="control-heading">
+        <h3 id="settingsTitle">Room settings</h3>
+        <button id="toggleSettings" class="toggle-settings" aria-expanded="true">Close</button>
+      </div>
+      <div id="ownerSettings" class="settings-content owner" data-display="flex">
+        <p>Give your room a name, choose whether completed spins celebrate, or save a copy.</p>
         <label for="roomNameEdit">Room name</label>
         <input id="roomNameEdit" placeholder="Room name">
         <label for="hostNameEdit">Your display name <small>(optional)</small></label>
         <input id="hostNameEdit" placeholder="Host name">
         <button id="saveRoomName">Save room details</button>
         <label class="celebration-toggle"><input id="celebrationToggle" type="checkbox">Celebrate spins</label>
-      </section>
-      <section class="control-group">
+        <button id="export">Export JSON</button>
+      </div>
+      <div id="spectatorSettings" class="settings-content spectator-only">
+        <p>Choose the name that everyone in this room will see. Leave it blank to stay anonymous.</p>
+        <label for="spectatorNameEdit">Your display name <small>(optional)</small></label>
+        <input id="spectatorNameEdit" maxlength="60" placeholder="Your name">
+        <button id="saveSpectatorName">Save display name</button>
+      </div>
+    </section>
+    <section class="control-group wheel-builder owner is-collapsed" id="wheelBuilderCard" data-display="flex">
+      <div class="control-heading">
         <h3>Add a wheel</h3>
+        <button id="toggleWheelBuilder" class="toggle-settings" aria-expanded="true">Close</button>
+      </div>
+      <div class="settings-content">
         <p>Enter a category and the values that should appear on its wheel.</p>
         <label for="name">Wheel name</label>
         <input id="name" placeholder="e.g. Dinner">
         <label for="values">Values, comma-separated</label>
         <input id="values" placeholder="Pizza, Pasta, Salad">
         <button id="add">Add wheel</button>
-      </section>
-      <section class="control-group">
-        <h3>Live actions</h3>
-        <p>Spin every wheel together or save a copy of this room.</p>
-        <button id="spinAll" class="spin">Spin all wheels</button>
-        <button id="export">Export JSON</button>
-      </section>
-    </div>
+      </div>
+    </section>
+    <button id="spinAll" class="floating-spin spin owner" data-display="grid" aria-label="Spin all wheels" title="Spin all wheels"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8S7.58 20 12 20c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>
+    <button id="openWheelBuilder" class="floating-add owner" data-display="grid" aria-label="Add a wheel" title="Add a wheel" aria-expanded="false"></button>
     <div id="board" class="board"></div>
     <section class="history">
       <h2>Spin history</h2>
@@ -393,6 +540,9 @@
     let spectators = [];
     const activeSpinIds = new Set();
     const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+    window.addEventListener('pagehide', () => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'leave' }));
+    });
 
     const send = message => ws.readyState === 1
       ? ws.send(JSON.stringify(message))
@@ -481,11 +631,18 @@
       }).join('');
       const displayedResult = category.lastResult ? 'Result: ' + esc(category.lastResult) : '';
 
-      return '<article class="card"><h3>' + esc(category.name) + '</h3>' +
+      return '<article class="card"><h3 class="wheel-title">' + esc(category.name) + '</h3>' +
+        '<div class="wheel-menu owner" data-display="block"><input id="wheel-menu-' + index + '" class="wheel-menu-checkbox" type="checkbox" aria-label="Wheel menu"><label class="wheel-menu-toggle" for="wheel-menu-' + index + '" title="Wheel menu"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></label><div class="wheel-menu-popover"><button class="wheel-menu-delete" data-remove="' + index + '">Delete wheel</button></div></div>' +
         '<div class="wheel-zone"><div class="pointer"></div><div id="wheel-' + index + '" class="wheel" style="background:conic-gradient(' + gradient + ');transform:rotate(' + (category.rotationDegrees || 0) + 'deg)">' + labels + '</div></div>' +
-        '<div class="wheel-actions owner" data-display="flex"><button class="spin" data-spin="' + index + '">Spin wheel</button><button class="danger" data-remove="' + index + '">Remove wheel</button></div>' +
+        '<div class="wheel-actions owner" data-display="flex"><button class="spin wheel-spin" data-spin="' + index + '"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8S7.58 20 12 20c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg><span>Spin wheel</span></button></div>' +
         '<p id="result-' + index + '" class="result">' + displayedResult + '</p></article>';
     }
+
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.wheel-menu')) {
+        document.querySelectorAll('.wheel-menu-checkbox:checked').forEach(menu => menu.checked = false);
+      }
+    });
 
     function render() {
       $('#board').innerHTML = state.categories.map(wheel).join('') || '<p>No wheels yet. Add one above.</p>';
@@ -497,8 +654,11 @@
       $('#roomNameDisplay').textContent = state.name || 'Room';
       $('#roomRole').textContent = owner ? 'You control this room' : 'Watching live';
       $('#spectatorCount').textContent = spectatorCount + (spectatorCount === 1 ? ' spectator watching' : ' spectators watching');
+      $('#settingsTitle').textContent = owner ? 'Room settings' : 'Your profile';
       if (owner) $('#roomNameEdit').value = state.name || '';
       if (owner) $('#hostNameEdit').value = state.hostName || '';
+      if (!owner) $('#spectatorNameEdit').value = spectatorName;
+      $('#spectatorSettings').style.display = owner ? 'none' : 'flex';
       $('#celebrationToggle').checked = !!state.celebrationEnabled;
       renderParticipants();
       document.querySelectorAll('.slice-label').forEach(label => {
@@ -615,9 +775,43 @@
       state.hostName = $('#hostNameEdit').value.trim();
       save();
     };
+    $('#saveSpectatorName').onclick = () => {
+      spectatorName = $('#spectatorNameEdit').value.trim();
+      const nameQuery = spectatorName ? '?name=' + encodeURIComponent(spectatorName) : '';
+      history.replaceState({}, '', '/room/' + state.code + nameQuery);
+      send({ type: 'rename', name: spectatorName });
+    };
     $('#celebrationToggle').onchange = () => {
       state.celebrationEnabled = $('#celebrationToggle').checked;
       save();
+    };
+    $('#openSettings').onclick = () => {
+      $('#wheelBuilderCard').classList.add('is-collapsed');
+      $('#roomSettingsCard').classList.remove('is-collapsed');
+      $('#settingsBackdrop').classList.add('show');
+      $('#openSettings').setAttribute('aria-expanded', 'true');
+      $('#openWheelBuilder').setAttribute('aria-expanded', 'false');
+    };
+    $('#toggleSettings').onclick = () => {
+      $('#roomSettingsCard').classList.add('is-collapsed');
+      $('#settingsBackdrop').classList.remove('show');
+      $('#openSettings').setAttribute('aria-expanded', 'false');
+    };
+    $('#openWheelBuilder').onclick = () => {
+      $('#roomSettingsCard').classList.add('is-collapsed');
+      $('#wheelBuilderCard').classList.remove('is-collapsed');
+      $('#settingsBackdrop').classList.add('show');
+      $('#openSettings').setAttribute('aria-expanded', 'false');
+      $('#openWheelBuilder').setAttribute('aria-expanded', 'true');
+    };
+    $('#toggleWheelBuilder').onclick = () => {
+      $('#wheelBuilderCard').classList.add('is-collapsed');
+      $('#settingsBackdrop').classList.remove('show');
+      $('#openWheelBuilder').setAttribute('aria-expanded', 'false');
+    };
+    $('#settingsBackdrop').onclick = () => {
+      $('#toggleSettings').click();
+      $('#toggleWheelBuilder').click();
     };
     $('#spinAll').onclick = () => spin(state.categories.map((_, index) => index));
     $('#export').onclick = () => {
