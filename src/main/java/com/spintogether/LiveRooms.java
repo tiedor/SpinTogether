@@ -1,6 +1,9 @@
 package com.spintogether;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -10,9 +13,13 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
@@ -24,20 +31,20 @@ public class LiveRooms implements WebSocketConfigurer {
     }
 
     static class Room {
-        String code;
-        String owner;
+        final String code;
+        final String ownerToken = UUID.randomUUID().toString();
         String data = "{}";
-        Set<WebSocketSession> clients = ConcurrentHashMap.newKeySet();
+        final Set<WebSocketSession> clients = ConcurrentHashMap.newKeySet();
 
-        Room(String code, String owner) {
+        Room(String code) {
             this.code = code;
-            this.owner = owner;
         }
     }
 
     static class Handler extends TextWebSocketHandler {
         static final Map<String, Room> rooms = new ConcurrentHashMap<>();
         static final ObjectMapper json = new ObjectMapper();
+        static final DateTimeFormatter EUROPEAN_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu");
 
         @Override
         protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
@@ -52,74 +59,67 @@ public class LiveRooms implements WebSocketConfigurer {
             if ("create".equals(type)) {
                 leave(session);
                 String code = code();
-                Room room = new Room(code, session.getId());
-                room.clients.add(session);
-                session.getAttributes().put("room", room);
-                send(session, Map.of("type", "joined", "code", code, "owner", true, "state", room.data));
+                Room room = new Room(code);
+                rooms.put(code, room);
+                enter(session, room, true, null);
+                joined(session, room, true);
                 presence(room);
                 return;
             }
 
             if ("import".equals(type)) {
-                String code = (String) input.get("code");
+                String code = String.valueOf(input.get("code")).toUpperCase();
                 if (rooms.containsKey(code)) {
                     send(session, Map.of("type", "error", "message", "That room code is already active."));
                     return;
                 }
                 leave(session);
-                Room room = new Room(code, session.getId());
+                Room room = new Room(code);
                 room.data = json.writeValueAsString(input.get("state"));
                 rooms.put(code, room);
-                room.clients.add(session);
-                session.getAttributes().put("room", room);
-                broadcast(room, Map.of("type", "joined", "code", code, "owner", true, "state", room.data));
+                enter(session, room, true, null);
+                joined(session, room, true);
                 presence(room);
                 return;
             }
 
             if ("join".equals(type)) {
-                Room room = rooms.get(input.get("code"));
+                Room room = rooms.get(String.valueOf(input.get("code")).toUpperCase());
                 if (room == null) {
                     send(session, Map.of("type", "error", "message", "Room not found."));
                     return;
                 }
+                boolean owner = room.ownerToken.equals(input.get("ownerToken"));
                 Room currentRoom = (Room) session.getAttributes().get("room");
                 if (currentRoom != room) {
                     leave(session);
                 }
-                room.clients.add(session);
-                session.getAttributes().put("room", room);
-                Object name = input.get("name");
-                if (name == null) {
-                    session.getAttributes().remove("name");
-                } else {
-                    session.getAttributes().put("name", name);
-                }
-                send(session, Map.of("type", "joined", "code", room.code, "owner", false, "state", room.data));
+                enter(session, room, owner, input.get("name"));
+                joined(session, room, owner);
                 presence(room);
                 return;
             }
 
             Room room = (Room) session.getAttributes().get("room");
-            if (room != null && !room.owner.equals(session.getId()) && "rename".equals(type)) {
-                Object submittedName = input.get("name");
-                String name = submittedName == null ? "" : submittedName.toString().trim();
-                if (name.length() > 60) {
-                    name = name.substring(0, 60);
-                }
-                if (name.isEmpty()) {
-                    session.getAttributes().remove("name");
-                } else {
-                    session.getAttributes().put("name", name);
-                }
+            if (room != null && !isOwner(session) && "rename".equals(type)) {
+                saveSpectatorName(session, input.get("name"));
                 presence(room);
                 return;
             }
-            if (room != null && room.owner.equals(session.getId()) && "spin".equals(type)) {
+            if (room != null && isOwner(session) && "spin".equals(type)) {
+                JsonNode spin = json.valueToTree(input.get("spin"));
+                applySpin(room, spin);
                 broadcast(room, Map.of("type", "spin", "spin", input.get("spin")));
+                Thread.ofVirtual().start(() -> {
+                    try {
+                        Thread.sleep(4100);
+                        broadcast(room, Map.of("type", "state", "state", room.data));
+                    } catch (Exception ignored) {
+                    }
+                });
                 return;
             }
-            if (room != null && room.owner.equals(session.getId()) && "state".equals(type)) {
+            if (room != null && isOwner(session) && "state".equals(type)) {
                 room.data = json.writeValueAsString(input.get("state"));
                 broadcast(room, Map.of("type", "state", "state", room.data));
             }
@@ -133,16 +133,82 @@ public class LiveRooms implements WebSocketConfigurer {
             }
         }
 
+        static void enter(WebSocketSession session, Room room, boolean owner, Object submittedName) {
+            room.clients.add(session);
+            session.getAttributes().put("room", room);
+            session.getAttributes().put("owner", owner);
+            if (owner) {
+                session.getAttributes().remove("name");
+            } else {
+                saveSpectatorName(session, submittedName);
+            }
+        }
+
+        static boolean isOwner(WebSocketSession session) {
+            return Boolean.TRUE.equals(session.getAttributes().get("owner"));
+        }
+
+        static void saveSpectatorName(WebSocketSession session, Object submittedName) {
+            String name = submittedName == null ? "" : submittedName.toString().trim();
+            if (name.length() > 60) {
+                name = name.substring(0, 60);
+            }
+            if (name.isEmpty()) {
+                session.getAttributes().remove("name");
+            } else {
+                session.getAttributes().put("name", name);
+            }
+        }
+
+        static void joined(WebSocketSession session, Room room, boolean owner) throws Exception {
+            if (owner) {
+                send(session, Map.of(
+                    "type", "joined",
+                    "code", room.code,
+                    "owner", true,
+                    "ownerToken", room.ownerToken,
+                    "state", room.data
+                ));
+            } else {
+                send(session, Map.of(
+                    "type", "joined",
+                    "code", room.code,
+                    "owner", false,
+                    "state", room.data
+                ));
+            }
+        }
+
+        static void applySpin(Room room, JsonNode spin) throws Exception {
+            JsonNode parsedState = json.readTree(room.data);
+            ObjectNode state = parsedState instanceof ObjectNode objectNode ? objectNode : json.createObjectNode();
+            ArrayNode categories = state.withArray("categories");
+            for (JsonNode wheel : spin.withArray("wheels")) {
+                int index = wheel.path("index").asInt(-1);
+                if (index < 0 || index >= categories.size() || !(categories.get(index) instanceof ObjectNode category)) {
+                    continue;
+                }
+                category.put("rotationDegrees", wheel.path("rotation").asDouble());
+                category.put("lastResult", wheel.path("result").asText());
+            }
+            ObjectNode lastSpin = state.putObject("lastSpin");
+            lastSpin.put("id", spin.path("id").asText());
+            lastSpin.set("results", spin.path("results").deepCopy());
+            ObjectNode historyEntry = state.withArray("history").addObject();
+            historyEntry.put("date", EUROPEAN_DATE.format(LocalDate.now(ZoneId.of("Europe/Amsterdam"))));
+            historyEntry.set("results", spin.path("results").deepCopy());
+            room.data = json.writeValueAsString(state);
+        }
+
         static void leave(WebSocketSession session) throws Exception {
             Room room = (Room) session.getAttributes().remove("room");
             session.getAttributes().remove("name");
+            session.getAttributes().remove("owner");
             if (room == null) {
                 return;
             }
             room.clients.remove(session);
-            if (room.clients.isEmpty()) {
-                rooms.remove(room.code, room);
-            } else {
+            if (!room.clients.isEmpty()) {
                 presence(room);
             }
         }
@@ -161,7 +227,7 @@ public class LiveRooms implements WebSocketConfigurer {
 
         static void presence(Room room) throws Exception {
             List<Map<String, String>> spectators = room.clients.stream()
-                .filter(session -> !room.owner.equals(session.getId()))
+                .filter(session -> !isOwner(session))
                 .map(session -> {
                     Object savedName = session.getAttributes().get("name");
                     String name = savedName == null ? "" : savedName.toString().trim();

@@ -537,6 +537,7 @@
     let celebrationTimeout;
     let spectatorCount = 0;
     let spectatorName = new URLSearchParams(location.search).get('name')?.trim() || '';
+    let ownerToken = '';
     let spectators = [];
     const activeSpinIds = new Set();
     const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
@@ -547,6 +548,7 @@
     const send = message => ws.readyState === 1
       ? ws.send(JSON.stringify(message))
       : $('#status').textContent = 'Connecting…';
+    const ownerTokenKey = roomCode => 'spinTogether.owner.' + roomCode;
     const code = () => Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
     const esc = value => value.replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character]);
     const europeanDate = () => new Intl.DateTimeFormat('en-GB', { dateStyle: 'short' }).format(new Date());
@@ -562,7 +564,6 @@
 
     function save() {
       send({ type: 'state', state });
-      render();
     }
 
     function showCelebration(results) {
@@ -679,7 +680,7 @@
       document.querySelectorAll('.owner').forEach(element => element.style.display = owner ? (element.dataset.display || 'block') : 'none');
     }
 
-    function playSpin(spinEvent, shouldSave) {
+    function playSpin(spinEvent) {
       if (!spinEvent || activeSpinIds.has(spinEvent.id)) return;
       activeSpinIds.add(spinEvent.id);
       spinEvent.wheels.forEach(wheelSpin => {
@@ -697,17 +698,7 @@
       });
       setTimeout(() => {
         activeSpinIds.delete(spinEvent.id);
-        if (shouldSave) {
-          state.lastSpin = { id: spinEvent.id, results: spinEvent.results };
-          showCelebrationIfNew();
-        }
       }, 4000);
-      if (shouldSave) {
-        setTimeout(() => {
-          state.history.push({ date: europeanDate(), results: spinEvent.results });
-          save();
-        }, 4100);
-      }
     }
 
     function spin(indices) {
@@ -729,7 +720,7 @@
         spinEvent.results.push({ wheel: category.name, result });
         spinEvent.wheels.push({ index, result, rotation });
       });
-      playSpin(spinEvent, true);
+      playSpin(spinEvent);
       send({ type: 'spin', spin: spinEvent });
     }
 
@@ -739,7 +730,8 @@
     };
     $('#join').onclick = () => {
       spectatorName = $('#anonymousSpectator').checked ? '' : $('#spectatorName').value.trim();
-      send({ type: 'join', code: $('#code').value.toUpperCase(), name: spectatorName });
+      const roomCode = $('#code').value.toUpperCase();
+      send({ type: 'join', code: roomCode, name: spectatorName, ownerToken: sessionStorage.getItem(ownerTokenKey(roomCode)) || '' });
     };
     $('#anonymousSpectator').onchange = () => $('#spectatorName').disabled = $('#anonymousSpectator').checked;
     $('#file').onchange = () => {
@@ -822,7 +814,10 @@
     };
     ws.onopen = () => {
       const sharedRoom = location.pathname.match(/^\/room\/([A-Z0-9]+)$/i);
-      if (sharedRoom) send({ type: 'join', code: sharedRoom[1].toUpperCase(), name: spectatorName });
+      if (sharedRoom) {
+        const roomCode = sharedRoom[1].toUpperCase();
+        send({ type: 'join', code: roomCode, name: spectatorName, ownerToken: sessionStorage.getItem(ownerTokenKey(roomCode)) || '' });
+      }
     };
     ws.onmessage = event => {
       const message = JSON.parse(event.data);
@@ -836,6 +831,10 @@
       }
       if (message.type === 'joined') {
         owner = message.owner;
+        if (owner && message.ownerToken) {
+          ownerToken = message.ownerToken;
+          sessionStorage.setItem(ownerTokenKey(message.code), ownerToken);
+        }
         state = JSON.parse(message.state);
         state.code = message.code;
         state.history ??= [];
@@ -853,7 +852,7 @@
         render();
         showCelebrationIfNew();
       }
-      if (message.type === 'spin') playSpin(message.spin, false);
+      if (message.type === 'spin') playSpin(message.spin);
       if (message.type === 'presence') {
         spectators = Array.isArray(message.spectators) ? message.spectators : [];
         spectatorCount = Number(message.count) || spectators.length;
