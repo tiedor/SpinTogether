@@ -119,9 +119,14 @@ public class LiveRooms implements WebSocketConfigurer {
                 });
                 return;
             }
+            if (room != null && isOwner(session) && "deleteHistoryEntries".equals(type)) {
+                deleteHistoryEntries(room, input.get("indices"));
+                broadcastState(room);
+                return;
+            }
             if (room != null && isOwner(session) && "state".equals(type)) {
                 room.data = json.writeValueAsString(input.get("state"));
-                broadcast(room, Map.of("type", "state", "state", room.data));
+                broadcastState(room);
             }
         }
 
@@ -198,6 +203,42 @@ public class LiveRooms implements WebSocketConfigurer {
             historyEntry.put("date", EUROPEAN_DATE.format(LocalDate.now(ZoneId.of("Europe/Amsterdam"))));
             historyEntry.set("results", spin.path("results").deepCopy());
             room.data = json.writeValueAsString(state);
+        }
+
+        static void deleteHistoryEntries(Room room, Object submittedIndices) throws Exception {
+            if (!(submittedIndices instanceof List<?> submitted)) {
+                return;
+            }
+            Set<Integer> indices = new java.util.TreeSet<>((first, second) -> Integer.compare(second, first));
+            for (Object submittedIndex : submitted) {
+                if (submittedIndex instanceof Number number) {
+                    indices.add(number.intValue());
+                }
+            }
+            if (indices.isEmpty()) {
+                return;
+            }
+            ObjectNode state = roomState(room);
+            ArrayNode history = state.withArray("history");
+            boolean changed = false;
+            for (int index : indices) {
+                if (index >= 0 && index < history.size()) {
+                    history.remove(index);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                room.data = json.writeValueAsString(state);
+            }
+        }
+
+        static ObjectNode roomState(Room room) throws Exception {
+            JsonNode parsedState = json.readTree(room.data);
+            return parsedState instanceof ObjectNode objectNode ? objectNode : json.createObjectNode();
+        }
+
+        static void broadcastState(Room room) throws Exception {
+            broadcast(room, Map.of("type", "state", "state", room.data));
         }
 
         static void leave(WebSocketSession session) throws Exception {

@@ -156,7 +156,11 @@
       color: #cbd5e1;
       text-align: right;
     }
+    button.room-code { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+    button.room-code:hover { border-color: rgba(153, 246, 228, .66); background: rgba(15, 23, 42, .68); color: #ccfbf1; transform: translateY(-1px); }
+    button.room-code:focus-visible { outline: 3px solid #99f6e4; outline-offset: 3px; }
     .room-code strong { display: block; margin-top: 3px; color: white; font-size: 21px; letter-spacing: .13em; }
+    .share-feedback { display: block; min-height: 15px; margin-top: 5px; color: #99f6e4; font-size: 10px; font-weight: 700; letter-spacing: normal; }
     .room-header-actions { display: flex; flex-direction: column; align-items: end; gap: 10px; }
     .open-settings {
       position: absolute;
@@ -342,7 +346,34 @@
     .wheel-menu-delete { width: 100%; padding: 11px 13px; border-color: transparent; background: transparent; color: #fecaca; font-weight: 700; text-align: left; white-space: nowrap; }
     .wheel-menu-delete:hover { border-color: transparent; background: rgba(185, 28, 28, .55); color: white; }
     .history { margin-top: 26px; padding: 18px; border-radius: 16px; background: var(--panel); }
+    .history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .history-heading h2 { margin: 0; }
+    .history ul { padding: 0; list-style: none; }
     .history li { margin: 9px 0; color: #cbd5e1; }
+    .history-item { display: flex; align-items: center; gap: 10px; }
+    .history-entry { min-width: 0; }
+    .history-menu { position: relative; }
+    .history-menu .wheel-menu-popover { top: 40px; }
+    .history-menu .wheel-menu-delete { min-width: 156px; }
+    .history-selection-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 14px 0 5px;
+      padding: 10px;
+      border: 1px solid rgba(254, 202, 202, .25);
+      border-radius: 12px;
+      background: rgba(127, 29, 29, .18);
+    }
+    .history-selection-toolbar p { margin: 0; color: #fecaca; font-size: 13px; font-weight: 700; }
+    .history-selection-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .history-selection-actions button, .history-cancel { margin: 0; padding: 7px 10px; font-size: 13px; }
+    .history-selection-actions .history-confirm { border-color: #b91c1c; background: #b91c1c; color: white; }
+    .history-selection-actions .history-confirm:hover { border-color: #991b1b; background: #991b1b; }
+    .history-select-row { display: flex; width: 100%; align-items: center; gap: 10px; cursor: pointer; }
+    .history-select-row:hover { color: white; }
+    .history-select-row input { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; accent-color: #b91c1c; }
     .result { height: 24px; color: #fde047; font-weight: bold; }
     .celebration-toggle { display: inline-flex; align-items: center; gap: 7px; margin: 4px 10px 4px 4px; }
     .celebration-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--spin); }
@@ -468,7 +499,7 @@
       </div>
       <div class="room-header-actions">
         <button id="openSettings" class="open-settings" aria-label="Settings" title="Settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98L14.5 2.42C14.47 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.5.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.48 0-.6.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.1-1.65zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg></button>
-        <div class="room-code">SHARE CODE<strong id="room"></strong></div>
+        <button id="shareRoom" class="room-code" type="button" aria-label="Share room link" title="Share room link">SHARE CODE<strong id="room"></strong><span id="shareFeedback" class="share-feedback" aria-live="polite">Click to share link</span></button>
       </div>
     </header>
     <section class="participant-panel">
@@ -516,7 +547,11 @@
     <button id="openWheelBuilder" class="floating-add owner" data-display="grid" aria-label="Add a wheel" title="Add a wheel" aria-expanded="false"></button>
     <div id="board" class="board"></div>
     <section class="history">
-      <h2>Spin history</h2>
+      <div class="history-heading">
+        <h2>Spin history</h2>
+        <div id="historyHeaderControls"></div>
+      </div>
+      <div id="historySelectionToolbar"></div>
       <ul id="history"></ul>
     </section>
   </section>
@@ -539,6 +574,10 @@
     let spectatorName = new URLSearchParams(location.search).get('name')?.trim() || '';
     let ownerToken = '';
     let spectators = [];
+    let historyDeletionMode = false;
+    let historyDeletionPending = false;
+    let selectedHistoryEntries = new Set();
+    let shareFeedbackTimeout;
     const activeSpinIds = new Set();
     const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     window.addEventListener('pagehide', () => {
@@ -564,6 +603,44 @@
 
     function save() {
       send({ type: 'state', state });
+    }
+
+    function showShareFeedback(message) {
+      $('#shareFeedback').textContent = message;
+      clearTimeout(shareFeedbackTimeout);
+      shareFeedbackTimeout = setTimeout(() => $('#shareFeedback').textContent = 'Click to share link', 2600);
+    }
+
+    async function shareRoom() {
+      const url = location.origin + '/room/' + state.code;
+      const shareData = {
+        title: (state.name || 'Spin Together') + ' room',
+        text: 'Join my live Spin Together room.',
+        url
+      };
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          showShareFeedback('Link shared');
+          return;
+        } catch (error) {
+          if (error && error.name === 'AbortError') return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        showShareFeedback('Link copied');
+      } catch (error) {
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = url;
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.opacity = '0';
+        document.body.append(temporaryInput);
+        temporaryInput.select();
+        const copied = document.execCommand('copy');
+        temporaryInput.remove();
+        showShareFeedback(copied ? 'Link copied' : 'Use the browser address to share');
+      }
     }
 
     function showCelebration(results) {
@@ -640,18 +717,39 @@
     }
 
     document.addEventListener('click', event => {
-      if (!event.target.closest('.wheel-menu')) {
+      if (!event.target.closest('.wheel-menu, .history-menu')) {
         document.querySelectorAll('.wheel-menu-checkbox:checked').forEach(menu => menu.checked = false);
       }
     });
 
     function render() {
       $('#board').innerHTML = state.categories.map(wheel).join('') || '<p>No wheels yet. Add one above.</p>';
-      $('#history').innerHTML = (state.history || []).slice().reverse().map(entry =>
-        '<li><b>' + esc(displayDate(entry.date)) + '</b>: ' + entry.results.map(result =>
+      const history = state.history || [];
+      if (!owner) {
+        historyDeletionMode = false;
+        historyDeletionPending = false;
+        selectedHistoryEntries.clear();
+      }
+      selectedHistoryEntries = new Set([...selectedHistoryEntries].filter(index => index >= 0 && index < history.length));
+      $('#historyHeaderControls').innerHTML = owner
+        ? historyDeletionMode
+          ? '<button id="cancelHistoryDeletion" class="history-cancel" type="button">Cancel</button>'
+          : '<div class="history-menu"><input id="history-menu" class="wheel-menu-checkbox" type="checkbox" aria-label="History menu"><label class="wheel-menu-toggle" for="history-menu" title="History options"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></label><div class="wheel-menu-popover"><button id="startHistoryDeletion" class="wheel-menu-delete" type="button">Delete history</button></div></div>'
+        : '';
+      const selectedCount = selectedHistoryEntries.size;
+      $('#historySelectionToolbar').innerHTML = owner && historyDeletionMode
+        ? '<div class="history-selection-toolbar"><p>' + selectedCount + (selectedCount === 1 ? ' entry selected' : ' entries selected') + '</p><div class="history-selection-actions"><button id="selectAllHistory" type="button"' + (!history.length || historyDeletionPending ? ' disabled' : '') + '>' + (selectedCount === history.length && history.length ? 'Clear selection' : 'Select all') + '</button><button id="confirmHistoryDeletion" class="history-confirm" type="button"' + (!selectedCount || historyDeletionPending ? ' disabled' : '') + '>' + (historyDeletionPending ? 'Deleting…' : 'Delete selected') + '</button></div></div>'
+        : '';
+      $('#history').innerHTML = history.slice().reverse().map((entry, reversedIndex) => {
+        const historyIndex = history.length - reversedIndex - 1;
+        const description = '<span class="history-entry"><b>' + esc(displayDate(entry.date)) + '</b>: ' + entry.results.map(result =>
           esc(result.wheel) + ' — ' + esc(result.result)
-        ).join(', ') + '</li>'
-      ).join('') || '<li>No spins yet.</li>';
+        ).join(', ') + '</span>';
+        const selection = owner && historyDeletionMode
+          ? '<label class="history-select-row"><input class="history-select" data-history-select="' + historyIndex + '" type="checkbox" aria-label="Select this history entry"' + (selectedHistoryEntries.has(historyIndex) ? ' checked' : '') + '>' + description + '</label>'
+          : description;
+        return '<li class="history-item">' + selection + '</li>';
+      }).join('') || '<li>No spins yet.</li>';
       $('#roomNameDisplay').textContent = state.name || 'Room';
       $('#roomRole').textContent = owner ? 'You control this room' : 'Watching live';
       $('#spectatorCount').textContent = spectatorCount + (spectatorCount === 1 ? ' spectator watching' : ' spectators watching');
@@ -677,6 +775,37 @@
         save();
       });
       document.querySelectorAll('[data-spin]').forEach(button => button.onclick = () => spin([+button.dataset.spin]));
+      $('#startHistoryDeletion')?.addEventListener('click', () => {
+        historyDeletionMode = true;
+        selectedHistoryEntries.clear();
+        render();
+      });
+      $('#cancelHistoryDeletion')?.addEventListener('click', () => {
+        historyDeletionMode = false;
+        historyDeletionPending = false;
+        selectedHistoryEntries.clear();
+        render();
+      });
+      document.querySelectorAll('[data-history-select]').forEach(checkbox => checkbox.onchange = () => {
+        const historyIndex = +checkbox.dataset.historySelect;
+        if (checkbox.checked) selectedHistoryEntries.add(historyIndex);
+        else selectedHistoryEntries.delete(historyIndex);
+        render();
+      });
+      $('#selectAllHistory')?.addEventListener('click', () => {
+        if (selectedHistoryEntries.size === history.length) selectedHistoryEntries.clear();
+        else selectedHistoryEntries = new Set(history.map((_, index) => index));
+        render();
+      });
+      $('#confirmHistoryDeletion')?.addEventListener('click', () => {
+        if (!selectedHistoryEntries.size || historyDeletionPending || ws.readyState !== WebSocket.OPEN) {
+          if (ws.readyState !== WebSocket.OPEN) $('#status').textContent = 'Connecting…';
+          return;
+        }
+        historyDeletionPending = true;
+        send({ type: 'deleteHistoryEntries', indices: [...selectedHistoryEntries] });
+        render();
+      });
       document.querySelectorAll('.owner').forEach(element => element.style.display = owner ? (element.dataset.display || 'block') : 'none');
     }
 
@@ -805,6 +934,7 @@
       $('#toggleSettings').click();
       $('#toggleWheelBuilder').click();
     };
+    $('#shareRoom').onclick = shareRoom;
     $('#spinAll').onclick = () => spin(state.categories.map((_, index) => index));
     $('#export').onclick = () => {
       const download = document.createElement('a');
@@ -849,6 +979,11 @@
       if (message.type === 'state') {
         state = JSON.parse(message.state);
         state.history ??= [];
+        if (historyDeletionPending) {
+          historyDeletionMode = false;
+          historyDeletionPending = false;
+          selectedHistoryEntries.clear();
+        }
         render();
         showCelebrationIfNew();
       }
