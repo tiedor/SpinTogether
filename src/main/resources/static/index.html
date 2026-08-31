@@ -148,19 +148,19 @@
     .participant.host { border-color: rgba(94, 234, 212, .45); color: #ccfbf1; }
     .participant small { margin-right: 4px; color: #94a3b8; }
     .room-code {
+      position: relative;
       flex: 0 0 auto;
-      padding: 12px 15px;
+      padding: 10px;
       border: 1px solid rgba(255, 255, 255, .2);
       border-radius: 14px;
       background: rgba(15, 23, 42, .38);
       color: #cbd5e1;
-      text-align: right;
+      cursor: pointer;
+      text-align: center;
     }
-    button.room-code { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
-    button.room-code:hover { border-color: rgba(153, 246, 228, .66); background: rgba(15, 23, 42, .68); color: #ccfbf1; transform: translateY(-1px); }
-    button.room-code:focus-visible { outline: 3px solid #99f6e4; outline-offset: 3px; }
-    .room-code strong { display: block; margin-top: 3px; color: white; font-size: 21px; letter-spacing: .13em; }
-    .share-feedback { display: block; min-height: 15px; margin-top: 5px; color: #99f6e4; font-size: 10px; font-weight: 700; letter-spacing: normal; }
+    .room-code:hover { border-color: rgba(153, 246, 228, .66); background: rgba(15, 23, 42, .68); color: #ccfbf1; }
+    .room-code strong { display: block; margin: 0; padding-left: .13em; color: white; font-size: 21px; letter-spacing: .13em; }
+    .room-code.is-confirmed { border-color: rgba(153, 246, 228, .7); color: #99f6e4; }
     .room-header-actions { display: flex; flex-direction: column; align-items: end; gap: 10px; }
     .open-settings {
       position: absolute;
@@ -437,7 +437,7 @@
       .home-card { min-height: auto; }
       .room-header { align-items: start; flex-direction: column; padding: 21px; }
       .room-header-actions { width: 100%; align-items: end; }
-      .room-code { width: 100%; text-align: right; }
+      .room-code { width: 100%; text-align: center; }
       .participant-panel { align-items: start; flex-direction: column; }
       .participant-list { justify-content: flex-start; }
       .wheel-title, .wheel-zone, .wheel { width: 230px; }
@@ -499,7 +499,7 @@
       </div>
       <div class="room-header-actions">
         <button id="openSettings" class="open-settings" aria-label="Settings" title="Settings" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98L14.5 2.42C14.47 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.5.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.08-.48 0-.6.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.1-1.65zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg></button>
-        <button id="shareRoom" class="room-code" type="button" aria-label="Share room link" title="Share room link">SHARE CODE<strong id="room"></strong><span id="shareFeedback" class="share-feedback" aria-live="polite">Click to share link</span></button>
+        <div id="shareRoom" class="room-code" title="Share room link"><strong id="room"></strong></div>
       </div>
     </header>
     <section class="participant-panel">
@@ -606,9 +606,11 @@
     }
 
     function showShareFeedback(message) {
-      $('#shareFeedback').textContent = message;
+      $('#shareRoom').classList.add('is-confirmed');
       clearTimeout(shareFeedbackTimeout);
-      shareFeedbackTimeout = setTimeout(() => $('#shareFeedback').textContent = 'Click to share link', 2600);
+      shareFeedbackTimeout = setTimeout(() => {
+        $('#shareRoom').classList.remove('is-confirmed');
+      }, 2600);
     }
 
     async function shareRoom() {
