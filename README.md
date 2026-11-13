@@ -2,11 +2,11 @@
 
 A small Java application for sharing live spinning wheels. The room owner creates categories and values, then spins; everyone with the six-character code sees each result and shared history.
 
-Room state, owner access, wheels, and history are stored on the server. A room remains available when nobody is connected and after the service restarts.
+Room state, owner access, wheels, and history are stored on the server while a room is in use. It remains available for a 15-minute reconnect window after the last person leaves, including if the service restarts. Export its JSON before then to use the room in a later session.
 
 ## Run locally
 
-Install Java 21, then run:
+Install Java 21 and Maven, then from PowerShell run:
 
 ```powershell
 mvn spring-boot:run
@@ -30,4 +30,4 @@ Then open `http://localhost:8080` in two browser windows. Create a room in one w
 
 Use the internal URL only in Render. It is a secret and must not be committed to GitHub or pasted into the application source.
 
-The free Render Postgres plan is intended for testing and prototyping and expires after 30 days, so keep using the app's JSON export as a backup.
+The free Render Postgres plan is intended for testing and prototyping and expires after 30 days. SpinTogether deletes inactive rooms after their 15-minute reconnect window, so use the JSON export to save a room between separate sessions.

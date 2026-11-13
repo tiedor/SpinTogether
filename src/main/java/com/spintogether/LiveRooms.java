@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -27,8 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
 @EnableWebSocket
+@EnableScheduling
 public class LiveRooms implements WebSocketConfigurer {
     private final RoomStore roomStore;
+    private Handler handler;
 
     public LiveRooms(RoomStore roomStore) {
         this.roomStore = roomStore;
@@ -36,7 +40,15 @@ public class LiveRooms implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new Handler(roomStore), "/ws").setAllowedOriginPatterns("*");
+        handler = new Handler(roomStore);
+        registry.addHandler(handler, "/ws").setAllowedOriginPatterns("*");
+    }
+
+    @Scheduled(fixedDelay = 60_000)
+    void removeExpiredRooms() {
+        if (handler != null) {
+            handler.extendActiveRoomLifetimesAndRemoveExpiredRooms();
+        }
     }
 
     static class Room {
@@ -75,6 +87,7 @@ public class LiveRooms implements WebSocketConfigurer {
                     return;
                 }
                 if ("ping".equals(type)) {
+                    keepRoomAvailable(session);
                     send(session, Map.of("type", "pong"));
                     return;
                 }
@@ -163,6 +176,12 @@ public class LiveRooms implements WebSocketConfigurer {
                 return;
             }
 
+            roomStore.deleteExpiredRooms();
+            if (activeRooms.containsKey(code) || roomStore.exists(code)) {
+                send(session, Map.of("type", "error", "message", "That room code is already active."));
+                return;
+            }
+
             try {
                 RoomStore.RoomRecord record = roomStore.create(
                     code,
@@ -191,6 +210,11 @@ public class LiveRooms implements WebSocketConfigurer {
                 send(session, Map.of("type", "error", "message", "Room not found."));
                 return;
             }
+            if (!roomStore.extendLifetime(room.code)) {
+                activeRooms.remove(room.code, room);
+                send(session, Map.of("type", "error", "message", "Room not found."));
+                return;
+            }
             boolean owner = room.ownerToken.equals(input.get("ownerToken"));
             Room currentRoom = (Room) session.getAttributes().get("room");
             if (currentRoom != room) {
@@ -213,6 +237,13 @@ public class LiveRooms implements WebSocketConfigurer {
                     return concurrentlyJoined == null ? restored : concurrentlyJoined;
                 })
                 .orElse(null);
+        }
+
+        private void keepRoomAvailable(WebSocketSession session) {
+            Room room = (Room) session.getAttributes().get("room");
+            if (room != null && !roomStore.extendLifetime(room.code)) {
+                activeRooms.remove(room.code, room);
+            }
         }
 
         private void spin(WebSocketSession session, Room room, Object submittedSpin) throws Exception {
@@ -381,9 +412,19 @@ public class LiveRooms implements WebSocketConfigurer {
             room.clients.remove(session);
             if (room.clients.isEmpty()) {
                 activeRooms.remove(room.code, room);
+                roomStore.extendLifetime(room.code);
             } else {
                 presence(room);
             }
+        }
+
+        private void extendActiveRoomLifetimesAndRemoveExpiredRooms() {
+            for (Room room : activeRooms.values()) {
+                if (!room.clients.isEmpty()) {
+                    roomStore.extendLifetime(room.code);
+                }
+            }
+            roomStore.deleteExpiredRooms();
         }
 
         private static void send(WebSocketSession session, Object data) throws Exception {
