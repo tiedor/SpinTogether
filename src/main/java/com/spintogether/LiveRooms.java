@@ -55,6 +55,10 @@ public class LiveRooms implements WebSocketConfigurer {
                 leave(session);
                 return;
             }
+            if ("ping".equals(type)) {
+                send(session, Map.of("type", "pong"));
+                return;
+            }
 
             if ("create".equals(type)) {
                 leave(session);
@@ -288,3 +292,4 @@ public class LiveRooms implements WebSocketConfigurer {
         }
     }
 }
+
